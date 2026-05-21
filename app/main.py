@@ -1,4 +1,5 @@
 import logging
+import os
 from contextlib import asynccontextmanager
 
 from apscheduler.schedulers.asyncio import AsyncIOScheduler
@@ -25,6 +26,7 @@ async def _scheduled_verification():
 @asynccontextmanager
 async def lifespan(app: FastAPI):
     await init_db()
+    logger.info("Startup: listening on port=%s", os.environ.get("PORT", "8000"))
     # 6am — run eligibility checks so action queue is ready well before 5pm delivery
     scheduler.add_job(_scheduled_verification, CronTrigger(hour=6, minute=0), id="daily_6am")
     # 7am — morning re-check alert for any overnight changes
