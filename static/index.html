@@ -1,0 +1,486 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Insurance Eligibility Verification</title>
+  <style>
+    *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+
+    :root {
+      --blue: #1a56db;
+      --blue-light: #e8f0fe;
+      --critical: #c81e1e;
+      --critical-bg: #fdf2f2;
+      --high: #c2410c;
+      --high-bg: #fff7ed;
+      --medium: #b45309;
+      --medium-bg: #fefce8;
+      --green: #057a55;
+      --green-bg: #f0fdf4;
+      --gray-50: #f9fafb;
+      --gray-100: #f3f4f6;
+      --gray-200: #e5e7eb;
+      --gray-400: #9ca3af;
+      --gray-600: #4b5563;
+      --gray-800: #1f2937;
+      --radius: 8px;
+      --shadow: 0 1px 3px rgba(0,0,0,0.08);
+    }
+
+    body {
+      font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
+      background: var(--gray-50);
+      color: var(--gray-800);
+      min-height: 100vh;
+    }
+
+    /* Header */
+    header {
+      background: white;
+      border-bottom: 1px solid var(--gray-200);
+      padding: 14px 32px;
+      display: flex;
+      align-items: center;
+      gap: 12px;
+    }
+    .logo {
+      width: 34px; height: 34px;
+      background: var(--blue);
+      border-radius: 8px;
+      display: flex; align-items: center; justify-content: center;
+      color: white; font-size: 18px;
+    }
+    header h1 { font-size: 17px; font-weight: 700; }
+    header p { font-size: 13px; color: var(--gray-400); margin-left: auto; }
+
+    main { max-width: 1080px; margin: 32px auto; padding: 0 24px 64px; }
+
+    /* Steps */
+    .steps {
+      display: grid;
+      grid-template-columns: repeat(3, 1fr);
+      gap: 16px;
+      margin-bottom: 36px;
+    }
+
+    .step-card {
+      background: white;
+      border: 1.5px solid var(--gray-200);
+      border-radius: var(--radius);
+      padding: 20px;
+      box-shadow: var(--shadow);
+      transition: border-color 0.2s, box-shadow 0.2s;
+    }
+    .step-card.active {
+      border-color: var(--blue);
+      box-shadow: 0 0 0 3px var(--blue-light);
+    }
+    .step-card.done { border-color: #22c55e; }
+
+    .step-num {
+      width: 28px; height: 28px;
+      border-radius: 50%;
+      background: var(--gray-100);
+      color: var(--gray-600);
+      font-size: 13px; font-weight: 700;
+      display: flex; align-items: center; justify-content: center;
+      margin-bottom: 10px;
+      transition: background 0.2s, color 0.2s;
+    }
+    .step-card.active .step-num { background: var(--blue); color: white; }
+    .step-card.done .step-num  { background: #22c55e; color: white; }
+
+    .step-card h2 { font-size: 14px; font-weight: 700; margin-bottom: 4px; }
+    .step-card > p { font-size: 13px; color: var(--gray-600); margin-bottom: 14px; line-height: 1.5; }
+
+    /* Upload drop zone */
+    .drop-zone {
+      border: 2px dashed var(--gray-200);
+      border-radius: var(--radius);
+      padding: 18px;
+      text-align: center;
+      cursor: pointer;
+      transition: border-color 0.15s, background 0.15s;
+      margin-bottom: 10px;
+    }
+    .drop-zone:hover, .drop-zone.over {
+      border-color: var(--blue);
+      background: var(--blue-light);
+    }
+    .drop-zone input[type="file"] { display: none; }
+    .drop-zone span { font-size: 13px; color: var(--gray-600); }
+    .drop-zone strong { color: var(--blue); }
+
+    .file-name {
+      font-size: 12px; color: var(--gray-600);
+      margin-bottom: 10px; display: none;
+    }
+
+    /* Button */
+    .btn {
+      display: inline-flex; align-items: center; justify-content: center; gap: 6px;
+      width: 100%; padding: 9px 16px;
+      background: var(--blue); color: white;
+      border: none; border-radius: 6px;
+      font-size: 14px; font-weight: 600;
+      cursor: pointer; transition: background 0.15s;
+    }
+    .btn:hover:not(:disabled) { background: #1447c0; }
+    .btn:disabled { background: var(--gray-400); cursor: not-allowed; }
+
+    .step-ok {
+      font-size: 12px; font-weight: 600;
+      color: #16a34a; margin-top: 10px;
+      display: none;
+    }
+
+    /* Spinner */
+    .spinner {
+      width: 14px; height: 14px;
+      border: 2px solid rgba(255,255,255,0.35);
+      border-top-color: white;
+      border-radius: 50%;
+      animation: spin 0.6s linear infinite;
+      flex-shrink: 0;
+    }
+    @keyframes spin { to { transform: rotate(360deg); } }
+
+    /* Results */
+    #results { display: none; }
+
+    .roi-grid {
+      display: grid;
+      grid-template-columns: repeat(4, 1fr);
+      gap: 14px;
+      margin-bottom: 24px;
+    }
+    .roi-card {
+      background: white;
+      border: 1px solid var(--gray-200);
+      border-radius: var(--radius);
+      padding: 18px 20px;
+      box-shadow: var(--shadow);
+    }
+    .roi-label {
+      font-size: 11px; font-weight: 700;
+      text-transform: uppercase; letter-spacing: 0.06em;
+      color: var(--gray-400); margin-bottom: 8px;
+    }
+    .roi-value { font-size: 28px; font-weight: 800; }
+    .roi-sub { font-size: 12px; color: var(--gray-400); margin-top: 3px; }
+    .roi-card.critical .roi-value { color: var(--critical); }
+
+    .section-title {
+      font-size: 15px; font-weight: 700;
+      margin-bottom: 12px;
+      display: flex; align-items: center; gap: 8px;
+    }
+    .count-badge {
+      font-size: 12px; font-weight: 700;
+      padding: 2px 9px; border-radius: 999px;
+      background: var(--gray-100); color: var(--gray-600);
+    }
+
+    .table-wrap {
+      background: white;
+      border: 1px solid var(--gray-200);
+      border-radius: var(--radius);
+      overflow: hidden;
+      box-shadow: var(--shadow);
+    }
+
+    table { width: 100%; border-collapse: collapse; }
+
+    th {
+      background: var(--gray-50);
+      font-size: 11px; font-weight: 700;
+      text-transform: uppercase; letter-spacing: 0.05em;
+      color: var(--gray-600);
+      padding: 10px 16px; text-align: left;
+      border-bottom: 1px solid var(--gray-200);
+    }
+
+    td {
+      padding: 13px 16px; font-size: 14px;
+      border-bottom: 1px solid var(--gray-100);
+      vertical-align: top;
+    }
+    tr:last-child td { border-bottom: none; }
+    tr:hover td { background: var(--gray-50); }
+
+    .pbadge {
+      display: inline-block;
+      font-size: 10px; font-weight: 800;
+      text-transform: uppercase; letter-spacing: 0.07em;
+      padding: 3px 8px; border-radius: 4px;
+      white-space: nowrap;
+    }
+    .p-CRITICAL { background: var(--critical-bg); color: var(--critical); }
+    .p-HIGH     { background: var(--high-bg);     color: var(--high); }
+    .p-MEDIUM   { background: var(--medium-bg);   color: var(--medium); }
+    .p-LOW      { background: var(--green-bg);    color: var(--green); }
+    .p-INFO     { background: var(--gray-100);    color: var(--gray-600); }
+
+    .patient-id { font-family: monospace; font-size: 13px; font-weight: 700; }
+    .svc-type   { font-size: 12px; color: var(--gray-400); margin-top: 2px; }
+    .flag-desc  { font-size: 13px; color: var(--gray-800); margin-bottom: 4px; font-weight: 500; }
+    .flag-action { font-size: 12px; color: var(--gray-600); line-height: 1.5; }
+
+    .empty {
+      text-align: center; padding: 48px;
+      font-size: 14px; color: var(--gray-400);
+    }
+
+    @media (max-width: 700px) {
+      .steps { grid-template-columns: 1fr; }
+      .roi-grid { grid-template-columns: repeat(2, 1fr); }
+    }
+  </style>
+</head>
+<body>
+
+<header>
+  <div class="logo">⚕</div>
+  <h1>Insurance Eligibility Verification</h1>
+  <p>Pre-visit coverage verification for specialty practices</p>
+</header>
+
+<main>
+
+  <div class="steps">
+
+    <!-- Step 1 -->
+    <div class="step-card active" id="s1">
+      <div class="step-num" id="s1-num">1</div>
+      <h2>Upload Appointments</h2>
+      <p>Upload your appointment schedule CSV. One row per patient visit.</p>
+      <div class="drop-zone" id="drop-zone">
+        <input type="file" id="file-input" accept=".csv">
+        <span>Drop CSV here or <strong>browse</strong></span>
+      </div>
+      <div class="file-name" id="file-name"></div>
+      <button class="btn" id="upload-btn" disabled>Upload Schedule</button>
+      <div class="step-ok" id="s1-ok"></div>
+    </div>
+
+    <!-- Step 2 -->
+    <div class="step-card" id="s2">
+      <div class="step-num" id="s2-num">2</div>
+      <h2>Run Eligibility Checks</h2>
+      <p>Verify every patient against their payer. Flags coverage problems automatically.</p>
+      <button class="btn" id="verify-btn" disabled>Run Verification</button>
+      <div class="step-ok" id="s2-ok"></div>
+    </div>
+
+    <!-- Step 3 -->
+    <div class="step-card" id="s3">
+      <div class="step-num" id="s3-num">3</div>
+      <h2>Review Action Queue</h2>
+      <p>Prioritized flags for your billing coordinator — sorted CRITICAL → HIGH → MEDIUM.</p>
+      <button class="btn" id="queue-btn" disabled>Load Action Queue</button>
+      <div class="step-ok" id="s3-ok"></div>
+    </div>
+
+  </div><!-- /steps -->
+
+  <!-- Results -->
+  <div id="results">
+
+    <div class="roi-grid">
+      <div class="roi-card">
+        <div class="roi-label">Flags Raised</div>
+        <div class="roi-value" id="r-flags">—</div>
+        <div class="roi-sub">this period</div>
+      </div>
+      <div class="roi-card critical">
+        <div class="roi-label">Critical</div>
+        <div class="roi-value" id="r-critical">—</div>
+        <div class="roi-sub">need immediate action</div>
+      </div>
+      <div class="roi-card">
+        <div class="roi-label">Resolved</div>
+        <div class="roi-value" id="r-resolved">—</div>
+        <div class="roi-sub">cleared by billing team</div>
+      </div>
+      <div class="roi-card">
+        <div class="roi-label">Est. Value Protected</div>
+        <div class="roi-value" id="r-value" style="font-size:20px;line-height:1.3">—</div>
+        <div class="roi-sub">$127/claim · MGMA 2023</div>
+      </div>
+    </div>
+
+    <div class="section-title">
+      Action Queue
+      <span class="count-badge" id="q-count"></span>
+    </div>
+
+    <div class="table-wrap">
+      <table>
+        <thead>
+          <tr>
+            <th style="width:100px">Priority</th>
+            <th style="width:130px">Patient</th>
+            <th style="width:110px">Payer</th>
+            <th>Flag &amp; Recommended Action</th>
+            <th style="width:80px">Appt Date</th>
+          </tr>
+        </thead>
+        <tbody id="q-body">
+          <tr><td colspan="5" class="empty">Run verification to populate the queue.</td></tr>
+        </tbody>
+      </table>
+    </div>
+
+  </div><!-- /results -->
+
+</main>
+
+<script>
+  const KEY = 'demo-api-key';
+  const h = () => ({ 'X-API-Key': KEY });
+
+  /* ── Upload zone ── */
+  const dropZone  = document.getElementById('drop-zone');
+  const fileInput = document.getElementById('file-input');
+  const uploadBtn = document.getElementById('upload-btn');
+  const fileNameEl = document.getElementById('file-name');
+  let picked = null;
+
+  dropZone.addEventListener('click', () => fileInput.click());
+  dropZone.addEventListener('dragover', e => { e.preventDefault(); dropZone.classList.add('over'); });
+  dropZone.addEventListener('dragleave', () => dropZone.classList.remove('over'));
+  dropZone.addEventListener('drop', e => {
+    e.preventDefault(); dropZone.classList.remove('over');
+    const f = e.dataTransfer.files[0];
+    if (f && f.name.endsWith('.csv')) pick(f);
+  });
+  fileInput.addEventListener('change', () => { if (fileInput.files[0]) pick(fileInput.files[0]); });
+
+  function pick(f) {
+    picked = f;
+    fileNameEl.textContent = '📄 ' + f.name;
+    fileNameEl.style.display = 'block';
+    uploadBtn.disabled = false;
+  }
+
+  uploadBtn.addEventListener('click', async () => {
+    if (!picked) return;
+    setLoading(uploadBtn, 'Uploading…');
+    const fd = new FormData();
+    fd.append('file', picked);
+    try {
+      const r = await fetch('/appointments/upload', { method: 'POST', headers: h(), body: fd });
+      const d = await r.json();
+      if (!r.ok) throw new Error(d.detail || 'Upload failed');
+      done(1, `✓ ${d.appointments_created} appointments loaded`);
+      activate(2);
+      document.getElementById('verify-btn').disabled = false;
+    } catch (e) {
+      reset(uploadBtn, 'Upload Schedule');
+      alert(e.message);
+    }
+  });
+
+  /* ── Verify ── */
+  const verifyBtn = document.getElementById('verify-btn');
+  verifyBtn.addEventListener('click', async () => {
+    setLoading(verifyBtn, 'Running…');
+    try {
+      const r = await fetch('/jobs/run-verification', { method: 'POST', headers: h() });
+      const d = await r.json();
+      if (!r.ok) throw new Error(d.detail || 'Verification failed');
+      done(2, `✓ ${d.appointments_processed} patients checked · ${d.flags_created} flags created`);
+      activate(3);
+      document.getElementById('queue-btn').disabled = false;
+      loadQueue(); // auto-load
+    } catch (e) {
+      reset(verifyBtn, 'Run Verification');
+      alert(e.message);
+    }
+  });
+
+  /* ── Queue ── */
+  const queueBtn = document.getElementById('queue-btn');
+  queueBtn.addEventListener('click', loadQueue);
+
+  async function loadQueue() {
+    setLoading(queueBtn, 'Loading…');
+    try {
+      const [qr, rr] = await Promise.all([
+        fetch('/reports/action-queue', { headers: h() }),
+        fetch('/reports/weekly-roi',   { headers: h() })
+      ]);
+      const queue = await qr.json();
+      const roi   = await rr.json();
+
+      renderROI(roi);
+      renderQueue(queue);
+      done(3, `✓ ${queue.length} items in queue`);
+      document.getElementById('results').style.display = 'block';
+      document.getElementById('results').scrollIntoView({ behavior: 'smooth', block: 'start' });
+    } catch (e) {
+      reset(queueBtn, 'Load Action Queue');
+      alert(e.message);
+    }
+  }
+
+  function renderROI(d) {
+    document.getElementById('r-flags').textContent    = d.total_flags_raised;
+    document.getElementById('r-critical').textContent = d.critical_flags;
+    document.getElementById('r-resolved').textContent = d.flags_resolved;
+    document.getElementById('r-value').textContent    = d.estimated_value_protected;
+  }
+
+  function renderQueue(items) {
+    document.getElementById('q-count').textContent = items.length;
+    const tb = document.getElementById('q-body');
+    if (!items.length) {
+      tb.innerHTML = '<tr><td colspan="5" class="empty">No flags — all patients verified clean.</td></tr>';
+      return;
+    }
+    tb.innerHTML = items.map(it => {
+      const dt = new Date(it.appointment_date).toLocaleDateString('en-US', { month: 'short', day: 'numeric' });
+      return `<tr>
+        <td><span class="pbadge p-${it.priority}">${it.priority}</span></td>
+        <td>
+          <div class="patient-id">${it.patient_ref}</div>
+          <div class="svc-type">${it.service_type}</div>
+        </td>
+        <td style="font-size:13px">${it.payer}</td>
+        <td>
+          <div class="flag-desc">${it.description}</div>
+          <div class="flag-action">${it.recommended_action}</div>
+        </td>
+        <td style="font-size:13px;white-space:nowrap">${dt}</td>
+      </tr>`;
+    }).join('');
+  }
+
+  /* ── Helpers ── */
+  function setLoading(btn, label) {
+    btn.disabled = true;
+    btn.innerHTML = `<span class="spinner"></span> ${label}`;
+  }
+  function reset(btn, label) {
+    btn.disabled = false;
+    btn.textContent = label;
+  }
+  function done(n, msg) {
+    const card = document.getElementById('s' + n);
+    card.classList.remove('active');
+    card.classList.add('done');
+    document.getElementById('s' + n + '-num').textContent = '✓';
+    const ok = document.getElementById('s' + n + '-ok');
+    ok.textContent = msg;
+    ok.style.display = 'block';
+    const btn = card.querySelector('.btn');
+    if (btn) { btn.disabled = true; btn.style.display = 'none'; }
+  }
+  function activate(n) {
+    document.getElementById('s' + n).classList.add('active');
+  }
+</script>
+
+</body>
+</html>

@@ -5,6 +5,8 @@ from contextlib import asynccontextmanager
 from apscheduler.schedulers.asyncio import AsyncIOScheduler
 from apscheduler.triggers.cron import CronTrigger
 from fastapi import FastAPI
+from fastapi.responses import FileResponse
+from fastapi.staticfiles import StaticFiles
 
 from app.core.logging_config import setup_logging
 from app.database import AsyncSessionLocal, init_db
@@ -53,6 +55,12 @@ app = FastAPI(
 app.include_router(appointments.router)
 app.include_router(jobs.router)
 app.include_router(reports.router)
+app.mount("/static", StaticFiles(directory="static"), name="static")
+
+
+@app.get("/", include_in_schema=False)
+async def frontend():
+    return FileResponse("static/index.html")
 
 
 @app.get("/health", tags=["System"])
